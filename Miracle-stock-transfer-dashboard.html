@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miracle Transfer Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+:root{--bg:#0f0f10;--s:#181819;--s2:#222224;--b:#2e2e32;--acc:#f0c040;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--text:#e8e8ea;--muted:#6b6b72;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif;--display:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.topbar{background:var(--s);border-bottom:1px solid var(--b);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+.topbar h1{font-family:var(--display);font-size:17px;font-weight:800;white-space:nowrap}
+.topbar h1 span{color:var(--acc)}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--b);border-radius:9px;padding:3px}
+.tab{padding:6px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab.active{background:var(--acc);color:#000}
+select,input[type=file]{background:var(--s2);border:1px solid var(--b);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 9px;outline:none;cursor:pointer}
+.upload-btn{background:var(--s2);border:1px solid var(--b);border-radius:7px;color:var(--text);font-size:12px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.main{padding:18px;max-width:1100px;margin:0 auto}
+.pane{display:none}.pane.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:680px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:12px 14px}
+.kpi-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.kpi-value{font-family:var(--display);font-size:26px;font-weight:800;line-height:1}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:680px){.charts-row{grid-template-columns:1fr}}
+.chart-card{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:16px}
+.ct{font-family:var(--mono);font-size:9px;color:var(--acc);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:12px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.card-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);gap:8px;flex-wrap:wrap}
+.card-title{font-family:var(--mono);font-size:9px;color:var(--acc);letter-spacing:1.2px;text-transform:uppercase}
+input[type=text]{background:var(--s2);border:1px solid var(--b);border-radius:6px;color:var(--text);font-size:12px;padding:5px 9px;font-family:var(--sans);outline:none;width:150px}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;text-align:left;padding:8px 14px;border-bottom:1px solid var(--b);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text)}
+.sort-icon{margin-left:3px;opacity:.4}
+th.sorted .sort-icon{opacity:1;color:var(--acc)}
+td{font-size:12px;padding:8px 14px;border-bottom:1px solid #1e1e20;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--s2)}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:8px;white-space:nowrap}
+.ba{background:rgba(74,222,128,.12);color:var(--green)}
+.br{background:rgba(248,113,113,.12);color:var(--red)}
+.bp{background:rgba(240,192,64,.12);color:var(--acc)}
+.empty{text-align:center;padding:50px 20px;color:var(--muted);font-family:var(--mono);font-size:12px}
+.ac-item{background:var(--s);border-left:3px solid var(--acc);padding:12px 14px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--b)}
+.ac-item:last-child{border-bottom:none}
+.ac-item.done{border-left-color:var(--green);opacity:.5}
+.ac-check{width:18px;height:18px;border:1.5px solid var(--b);border-radius:4px;cursor:pointer;background:var(--s2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s}
+.ac-check.checked{background:var(--green);border-color:var(--green);color:#000}
+.ac-info{flex:1}
+.ac-who{font-size:13px;font-weight:500}
+.ac-items{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px;line-height:1.7}
+.ac-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.ac-date{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.btn{background:var(--s2);border:1px solid var(--b);border-radius:7px;color:var(--text);font-size:12px;padding:6px 12px;cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn-green{background:rgba(74,222,128,.1);border-color:var(--green);color:var(--green)}
+.sku-bar-wrap{width:80px;height:6px;background:var(--s2);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px}
+.sku-bar{height:100%;background:var(--acc);border-radius:3px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#000;font-family:var(--mono);font-size:12px;padding:8px 18px;border-radius:16px;transition:transform .25s;z-index:999;white-space:nowrap;font-weight:500}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Transfer <span>Dashboard</span></h1>
+  <div class="topbar-right">
+    <div class="tabs">
+      <button class="tab active" onclick="switchPane('overview',this)">Overview</button>
+      <button class="tab" onclick="switchPane('sku',this)">SKU</button>
+      <button class="tab" onclick="switchPane('accounts',this)">Accounts</button>
+      <button class="tab" onclick="switchPane('history',this)">History</button>
+    </div>
+    <select id="monthFilter" onchange="render()"><option value="all">All time</option></select>
+    <button class="upload-btn" onclick="fetchFromGitHub()">&#128257; 刷新数据</button>
+    <label class="upload-btn" for="fileInput" style="margin-left:4px">&#128194; 本地文件</label>
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadFile(event)"/>
+  </div>
+</div>
+<div class="main">
+
+  <!-- OVERVIEW -->
+  <div class="pane active" id="pane-overview">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Total Requests</div><div class="kpi-value" id="k-total">&#8212;</div><div class="kpi-sub" id="ks-total">load data to begin</div></div>
+      <div class="kpi"><div class="kpi-label">Approved</div><div class="kpi-value" style="color:var(--green)" id="k-approved">&#8212;</div><div class="kpi-sub" id="ks-approved"></div></div>
+      <div class="kpi"><div class="kpi-label">Rejected</div><div class="kpi-value" style="color:var(--red)" id="k-rejected">&#8212;</div><div class="kpi-sub" id="ks-rejected"></div></div>
+      <div class="kpi"><div class="kpi-label">AutoCount Todo</div><div class="kpi-value" style="color:var(--acc)" id="k-actodo">&#8212;</div><div class="kpi-sub" id="ks-actodo"></div></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><div class="ct">Requests by month</div><div style="position:relative;height:200px"><canvas id="monthChart"></canvas></div></div>
+      <div class="chart-card"><div class="ct">Top agents (transfers out)</div><div style="position:relative;height:200px"><canvas id="agentChart"></canvas></div></div>
+    </div>
+    <div class="card" id="pendingCard" style="display:none">
+      <div class="card-header"><span class="card-title">&#9203; Pending approval</span></div>
+      <div id="pendingList"></div>
+    </div>
+  </div>
+
+  <!-- SKU -->
+  <div class="pane" id="pane-sku">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Unique SKUs</div><div class="kpi-value" style="color:var(--blue)" id="k-skus">&#8212;</div><div class="kpi-sub">transferred</div></div>
+      <div class="kpi"><div class="kpi-label">Total CTN moved</div><div class="kpi-value" style="color:var(--acc)" id="k-ctn">&#8212;</div><div class="kpi-sub">approved only</div></div>
+      <div class="kpi"><div class="kpi-label">Most moved SKU</div><div class="kpi-value" style="font-size:18px;color:var(--purple)" id="k-topsku">&#8212;</div><div class="kpi-sub" id="ks-topsku"></div></div>
+      <div class="kpi"><div class="kpi-label">Avg CTN / request</div><div class="kpi-value" id="k-avg">&#8212;</div><div class="kpi-sub">approved transfers</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">SKU movement (approved transfers)</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="skuSearch" placeholder="Search SKU..." oninput="renderSKU()"/>
+          <button class="btn" onclick="exportSKUCSV()">&#11015; CSV</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="skuTable">
+          <thead><tr>
+            <th onclick="sortSKU('sku')">SKU <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortSKU('ctn')" class="sorted">Total CTN <span class="sort-icon">&#8595;</span></th>
+            <th onclick="sortSKU('times')">Times <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortSKU('agents')">Agents <span class="sort-icon">&#8597;</span></th>
+            <th>Volume</th>
+          </tr></thead>
+          <tbody id="skuBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="ct">Top 10 SKU by CTN moved</div>
+      <div style="position:relative;height:280px"><canvas id="skuChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="pane" id="pane-accounts">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Pending AutoCount</div><div class="kpi-value" style="color:var(--acc)" id="k-ac-todo">&#8212;</div><div class="kpi-sub">need to update</div></div>
+      <div class="kpi"><div class="kpi-label">Done this session</div><div class="kpi-value" style="color:var(--green)" id="k-ac-done">0</div><div class="kpi-sub">marked complete</div></div>
+      <div class="kpi"><div class="kpi-label">Total approved</div><div class="kpi-value" id="k-ac-total">&#8212;</div><div class="kpi-sub">all time</div></div>
+      <div class="kpi"><div class="kpi-label">Export</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-green" onclick="exportAccountsCSV()">&#11015; CSV</button>
+          <button class="btn" onclick="markAllDone()">&#10003; All done</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">AutoCount task list</span>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="ac-subtitle">Approved transfers pending update</span>
+      </div>
+      <div id="acList"><div class="empty">No pending items.</div></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="pane" id="pane-history">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Transfer history</span>
+        <input type="text" id="histSearch" placeholder="Search..." oninput="renderHistory()"/>
+      </div>
+      <div style="overflow-x:auto">
+        <table><thead><tr>
+          <th>Date</th><th>From</th><th>To</th><th>Items</th><th>Reason</th><th>Status</th><th>Approver</th>
+        </tr></thead><tbody id="histBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var allRecords=[],sessionDone=0,monthChart,agentChart,skuChart,skuSortKey='ctn',skuSortDir=-1;
+window.addEventListener('load', function(){ fetchFromGitHub(); });
+
+var GITHUB_RAW = "https://raw.githubusercontent.com/izfoo0121-lab/miraclestocktransfer/main/history.json";
+
+async function fetchFromGitHub(){
+  try {
+    toast("正在获取最新数据...");
+    var r = await fetch(GITHUB_RAW + "?t=" + Date.now());
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    allRecords = await r.json();
+    buildMonthFilter();
+    render();
+    toast("数据已更新！共 " + allRecords.length + " 条记录");
+  } catch(e) {
+    toast("获取失败: " + e.message);
+  }
+}
+
+function loadFile(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{allRecords=JSON.parse(ev.target.result);buildMonthFilter();render();toast('Loaded '+allRecords.length+' records');}
+    catch(err){alert('Invalid JSON: '+err);}
+  };r.readAsText(f);
+}
+
+function buildMonthFilter(){
+  var months=new Set();
+  allRecords.forEach(function(r){var d=r.decided_at||'';if(d)months.add(d.slice(0,7));});
+  var sel=document.getElementById('monthFilter');
+  sel.innerHTML='<option value="all">All time</option>';
+  Array.from(months).sort().reverse().forEach(function(m){
+    sel.innerHTML+='<option value="'+m+'">'+fmtMonth(m)+'</option>';
+  });
+}
+
+function fmtMonth(s){
+  if(!s.includes('-'))return s;
+  var p=s.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1]+' '+p[0];
+}
+
+function getFiltered(){
+  var month=document.getElementById('monthFilter').value;
+  return allRecords.filter(function(r){
+    if(month==='all')return true;
+    return (r.decided_at||'').startsWith(month);
+  });
+}
+
+function render(){
+  var f=getFiltered();
+  renderKPIs(f);renderCharts(f);renderPending();
+  if(document.getElementById('pane-sku').classList.contains('active'))renderSKU();
+  if(document.getElementById('pane-accounts').classList.contains('active'))renderAccounts();
+  if(document.getElementById('pane-history').classList.contains('active'))renderHistory();
+}
+
+function isApproved(r){return (r.decision||'').toUpperCase().startsWith('APPROVED');}
+function isRejected(r){return (r.decision||'').toUpperCase().startsWith('REJECTED');}
+function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+
+function renderKPIs(f){
+  var total=f.length,approved=f.filter(isApproved).length,rejected=f.filter(isRejected).length;
+  var acTodo=allRecords.filter(function(r){return r.autocount_done===false;}).length;
+  var rate=total?Math.round(approved/total*100):0;
+  set('k-total',total);set('k-approved',approved);set('k-rejected',rejected);set('k-actodo',acTodo);
+  set('ks-total',rate+'% approval rate');
+  set('ks-approved',total?Math.round(approved/total*100)+'% of total':'');
+  set('ks-rejected',total?Math.round(rejected/total*100)+'% of total':'');
+  set('ks-actodo',acTodo?'need AutoCount update':'all up to date');
+}
+
+function renderCharts(f){
+  var byMonth={};
+  f.forEach(function(r){
+    var k=(r.decided_at||'').slice(0,7)||'Unknown';
+    if(!byMonth[k])byMonth[k]={a:0,r:0};
+    if(isApproved(r))byMonth[k].a++;else if(isRejected(r))byMonth[k].r++;
+  });
+  var months=Object.keys(byMonth).sort();
+  if(monthChart)monthChart.destroy();
+  monthChart=new Chart(document.getElementById('monthChart'),{
+    type:'bar',data:{labels:months.map(fmtMonth),datasets:[
+      {label:'Approved',data:months.map(function(m){return byMonth[m].a;}),backgroundColor:'rgba(74,222,128,.7)',borderRadius:3},
+      {label:'Rejected',data:months.map(function(m){return byMonth[m].r;}),backgroundColor:'rgba(248,113,113,.7)',borderRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,ticks:{color:'#6b6b72',font:{size:10}},grid:{color:'#2e2e32'}},
+              y:{stacked:true,ticks:{color:'#6b6b72',font:{size:10}},grid:{color:'#2e2e32'}}}}
+  });
+  var byAgent={};
+  f.forEach(function(r){var a=r.from||'?';byAgent[a]=(byAgent[a]||0)+1;});
+  var sorted=Object.entries(byAgent).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  if(agentChart)agentChart.destroy();
+  agentChart=new Chart(document.getElementById('agentChart'),{
+    type:'bar',data:{labels:sorted.map(function(e){return e[0];}),datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:'rgba(240,192,64,.75)',borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#6b6b72',font:{size:10}},grid:{color:'#2e2e32'}},y:{ticks:{color:'#e8e8ea',font:{size:11}},grid:{display:false}}}}
+  });
+}
+
+function renderPending(){
+  var pending=allRecords.filter(function(r){return !r.decision;});
+  var card=document.getElementById('pendingCard');
+  if(!pending.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById('pendingList').innerHTML=pending.map(function(r){
+    var items=(r.items||[]).map(function(i){return i.brand+'x'+i.qty;}).join(', ');
+    return '<div class="ac-item"><div class="ac-info"><div class="ac-who">'+r.from+'  '+r.to+'</div><div class="ac-items">'+items+'</div></div><div class="ac-date">'+(r.date||'')+'</div></div>';
+  }).join('');
+}
+
+function buildSKUData(){
+  var f=getFiltered(),skus={};
+  f.forEach(function(r){
+    if(!isApproved(r))return;
+    (r.items||[]).forEach(function(it){
+      var s=(it.brand||'?').toUpperCase(),q=parseInt(it.qty)||0;
+      if(!skus[s])skus[s]={ctn:0,times:0,agents:{}};
+      skus[s].ctn+=q;skus[s].times++;
+      if(r.from)skus[s].agents[r.from]=1;
+    });
+  });
+  return Object.entries(skus).map(function(e){return {sku:e[0],ctn:e[1].ctn,times:e[1].times,agents:Object.keys(e[1].agents).length};});
+}
+
+function renderSKU(){
+  var data=buildSKUData();
+  var search=(document.getElementById('skuSearch').value||'').toUpperCase();
+  var filtered=data.filter(function(d){return !search||d.sku.includes(search);});
+  var sorted=filtered.slice().sort(function(a,b){return skuSortDir*(b[skuSortKey]-a[skuSortKey])||a.sku.localeCompare(b.sku);});
+  var totalCTN=data.reduce(function(s,d){return s+d.ctn;},0);
+  var maxCTN=data.reduce(function(m,d){return Math.max(m,d.ctn);},0);
+  set('k-skus',data.length);set('k-ctn',totalCTN);
+  if(data.length){
+    var top=data.reduce(function(a,b){return a.ctn>b.ctn?a:b;});
+    set('k-topsku',top.sku);set('ks-topsku',top.ctn+' ctn moved');
+  }
+  var appCount=getFiltered().filter(isApproved).length;
+  set('k-avg',appCount?(totalCTN/appCount).toFixed(1):'--');
+  document.getElementById('skuBody').innerHTML=sorted.length?sorted.map(function(d){
+    var pct=maxCTN?Math.round(d.ctn/maxCTN*100):0;
+    return '<tr><td><strong>'+d.sku+'</strong></td><td><strong>'+d.ctn+'</strong></td><td>'+d.times+'</td><td>'+d.agents+'</td><td><div class="sku-bar-wrap"><div class="sku-bar" style="width:'+pct+'%"></div></div></td></tr>';
+  }).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">No data</td></tr>';
+  var top10=data.slice().sort(function(a,b){return b.ctn-a.ctn;}).slice(0,10);
+  if(skuChart)skuChart.destroy();
+  skuChart=new Chart(document.getElementById('skuChart'),{
+    type:'bar',
+    data:{labels:top10.map(function(d){return d.sku;}),datasets:[{data:top10.map(function(d){return d.ctn;}),backgroundColor:top10.map(function(_,i){return 'hsla('+(180+i*15)+',70%,60%,.75)';}),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#e8e8ea',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#6b6b72',font:{size:10}},grid:{color:'#2e2e32'}}}}
+  });
+}
+
+function sortSKU(key){
+  if(skuSortKey===key)skuSortDir*=-1;else{skuSortKey=key;skuSortDir=-1;}
+  document.querySelectorAll('#skuTable th').forEach(function(th){
+    th.classList.remove('sorted');th.querySelector('.sort-icon').textContent='↕';
+  });
+  var map={sku:0,ctn:1,times:2,agents:3};
+  var ths=document.querySelectorAll('#skuTable th');
+  if(ths[map[key]]){ths[map[key]].classList.add('sorted');ths[map[key]].querySelector('.sort-icon').textContent=skuSortDir<0?'↓':'↑';}
+  renderSKU();
+}
+
+function exportSKUCSV(){
+  var data=buildSKUData().sort(function(a,b){return b.ctn-a.ctn;});
+  var month=document.getElementById('monthFilter').value;
+  var csv='SKU,Total CTN,Times Transferred,Agents Involved\n';
+  data.forEach(function(d){csv+=d.sku+','+d.ctn+','+d.times+','+d.agents+'\n';});
+  download(csv,'sku-summary-'+month+'.csv');toast('SKU CSV exported');
+}
+
+function renderAccounts(){
+  var todo=allRecords.filter(function(r){return r.autocount_done===false;});
+  var total=allRecords.filter(isApproved).length;
+  set('k-ac-todo',todo.length);set('k-ac-done',sessionDone);set('k-ac-total',total);
+  set('ac-subtitle',todo.length?todo.length+' transfer'+(todo.length>1?'s':'')+' need AutoCount update':'All up to date');
+  var list=document.getElementById('acList');
+  if(!todo.length){list.innerHTML='<div class="empty" style="color:var(--green)">All transfers updated in AutoCount</div>';return;}
+  list.innerHTML=todo.map(function(r){
+    var idx=allRecords.indexOf(r);
+    var items=(r.items||[]).map(function(i){return '<span>'+i.brand+' — <strong>'+i.qty+' ctn</strong></span>';}).join('<br>');
+    var reasons=(r.reasons||[]).join(', ');
+    return '<div class="ac-item" id="ac-'+idx+'"><div class="ac-check" id="chk-'+idx+'" onclick="markDone('+idx+')"></div><div class="ac-info"><div class="ac-who">'+(r.from||'?')+' &rarr; '+(r.to||'?')+'</div><div class="ac-items">'+items+'</div><div class="ac-meta">Reason: '+reasons+' &middot; Approved by '+(r.approver||'?')+'</div></div><div class="ac-date">'+(r.date||'')+'</div></div>';
+  }).join('');
+}
+
+function markDone(idx){
+  allRecords[idx].autocount_done=true;sessionDone++;
+  var row=document.getElementById('ac-'+idx),chk=document.getElementById('chk-'+idx);
+  if(chk){chk.textContent='✓';chk.classList.add('checked');}
+  if(row){row.classList.add('done');setTimeout(function(){renderAccounts();set('k-ac-done',sessionDone);},700);}
+  toast('Marked done');
+}
+
+function markAllDone(){
+  var todo=allRecords.filter(function(r){return r.autocount_done===false;});
+  todo.forEach(function(r){r.autocount_done=true;sessionDone++;});
+  renderAccounts();set('k-ac-done',sessionDone);
+  toast(todo.length+' items marked done');
+}
+
+function exportAccountsCSV(){
+  var records=allRecords.filter(isApproved);
+  var month=document.getElementById('monthFilter').value;
+  var csv='Date,From,To,SKU,Qty CTN,Reason,Approver,AutoCount Done\n';
+  records.forEach(function(r){
+    (r.items||[]).forEach(function(it){
+      csv+=(r.date||'')+','+(r.from||'')+','+(r.to||'')+','+(it.brand||'')+','+(it.qty||'')+','+(r.reasons||[]).join('/')+','+(r.approver||'')+','+(r.autocount_done?'Yes':'No')+'\n';
+    });
+  });
+  download(csv,'accounts-transfer-'+month+'.csv');toast('Accounts CSV exported');
+}
+
+function renderHistory(){
+  var search=(document.getElementById('histSearch').value||'').toLowerCase();
+  var filtered=getFiltered().filter(function(r){return !search||JSON.stringify(r).toLowerCase().includes(search);});
+  var body=document.getElementById('histBody');
+  if(!filtered.length){body.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">No records</td></tr>';return;}
+  body.innerHTML=filtered.map(function(r){
+    var items=(r.items||[]).map(function(i){return i.brand+'x'+i.qty;}).join(', ');
+    var reasons=(r.reasons||[]).join(', ');
+    var bc=isApproved(r)?'ba':isRejected(r)?'br':'bp';
+    var bl=isApproved(r)?'Approved':isRejected(r)?'Rejected':'Pending';
+    var date=r.date||(r.decided_at?r.decided_at.slice(0,10):'');
+    return '<tr><td style="white-space:nowrap">'+date+'</td><td><strong>'+(r.from||'')+'</strong></td><td>'+(r.to||'')+'</td><td style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+items+'</td><td style="font-size:11px;color:var(--muted)">'+reasons+'</td><td><span class="badge '+bc+'">'+bl+'</span></td><td style="font-size:11px;color:var(--muted)">'+(r.approver||'')+'</td></tr>';
+  }).join('');
+}
+
+function switchPane(name,btn){
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='sku')renderSKU();
+  if(name==='accounts')renderAccounts();
+  if(name==='history')renderHistory();
+}
+
+function download(csv,name){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=name;a.click();
+}
+
+function toast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+</script>
+</body>
+</html>
